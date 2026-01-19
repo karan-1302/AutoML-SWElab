@@ -1,4 +1,4 @@
-# Software Requirements Specification (SRS)
+# Requirements File
 ## AutoML Platform for Model Selection and Training in Real Estate
 
 ---
