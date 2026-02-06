@@ -1,0 +1,22 @@
+{
+  "model_name": "LinearRegression",
+  "scores": {
+    "rmse": 3179.0588,
+    "mae": 2233.1541,
+    "r2": 0.997979
+  },
+  "feature_columns": [
+    "bedrooms",
+    "bathrooms",
+    "sqft_living",
+    "sqft_lot",
+    "floors",
+    "waterfront",
+    "view",
+    "condition",
+    "grade",
+    "yr_built"
+  ],
+  "target_column": "price",
+  "timestamp": "2026-04-26T21:45:22.839940+00:00"
+}

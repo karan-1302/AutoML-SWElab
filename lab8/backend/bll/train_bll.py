@@ -51,13 +51,50 @@ def validate_training_request(
     """
     errors: list[str] = []
 
-    # BR-TRN-01: Dataset must exist in cache
+    # BR-TRN-01: Dataset must exist in cache or be loadable from database
     dataset = get_cached_dataset(dataset_id)
     if not dataset:
-        return False, {
-            "errors": [f"Dataset '{dataset_id}' not found. Please upload a dataset first."],
-            "code": 404,
-        }
+        # Try to load from database and file system
+        from dal.repositories.dataset_repository import get_dataset_by_id
+        from utils.store import cache_dataset
+        import os
+        
+        db_dataset = get_dataset_by_id(db, dataset_id)
+        if not db_dataset:
+            return False, {
+                "errors": [f"Dataset '{dataset_id}' not found in database. Please upload a dataset first."],
+                "code": 404,
+            }
+        
+        # Check if file exists on disk
+        if not db_dataset.file_path or not os.path.exists(db_dataset.file_path):
+            return False, {
+                "errors": [f"Dataset file not found on disk. Please re-upload the dataset."],
+                "code": 404,
+            }
+        
+        # Load CSV from disk
+        try:
+            df = pd.read_csv(db_dataset.file_path)
+            columns = list(df.columns)
+            
+            # Cache the dataset for future use
+            cache_dataset(dataset_id, {
+                "dataset_id":  dataset_id,
+                "filename":    db_dataset.filename,
+                "user_id":     user_id,
+                "dataframe":   df,
+                "row_count":   len(df),
+                "columns":     columns,
+            })
+            
+            dataset = get_cached_dataset(dataset_id)
+            print(f"[train_bll] Loaded dataset {dataset_id} from disk and cached it")
+        except Exception as e:
+            return False, {
+                "errors": [f"Failed to load dataset from disk: {str(e)}"],
+                "code": 500,
+            }
 
     # BR-TRN-02: Target column must exist
     if target_column not in dataset["columns"]:
@@ -104,10 +141,23 @@ def validate_training_request(
 
 # ── Launch training ───────────────────────────────────────────
 
-def start_training(user_id: str, df: pd.DataFrame, target_column: str, db: Session):
+def start_training(user_id: str, df: pd.DataFrame, target_column: str, dataset_id: str, db: Session):
     """
     Launch AutoML training in a background thread.
     Creates the initial job record in the database via DAL.
+    
+    Parameters
+    ----------
+    user_id : str
+        The user ID.
+    df : pd.DataFrame
+        The training dataset.
+    target_column : str
+        The target column name.
+    dataset_id : str
+        The dataset ID for organizing persisted models.
+    db : Session
+        Database session.
     """
     # Create initial job record in database
     create_or_update_job(
@@ -122,7 +172,7 @@ def start_training(user_id: str, df: pd.DataFrame, target_column: str, db: Sessi
 
     t = threading.Thread(
         target=run_automl,
-        args=(user_id, df, target_column),
+        args=(user_id, df, target_column, dataset_id),
         daemon=True,
     )
     t.start()

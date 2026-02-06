@@ -27,7 +27,7 @@ from dal.repositories.user_repository import get_user_by_email
 
 # ── Validation helpers ────────────────────────────────────────
 
-EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
+EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9]+([._+-][a-zA-Z0-9]+)*@[a-zA-Z0-9]+([.-][a-zA-Z0-9]+)*\.[a-zA-Z0-9]+([.-][a-zA-Z0-9]+)*$")
 MIN_PASSWORD_LENGTH = 6
 
 

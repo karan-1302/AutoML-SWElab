@@ -39,6 +39,7 @@ def start_training_endpoint(
         user_id=current_user["user_id"],
         df=result["df"],
         target_column=body.target_column,
+        dataset_id=body.dataset_id,
         db=db,
     )
 

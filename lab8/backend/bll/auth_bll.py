@@ -106,7 +106,7 @@ def authenticate_user(email: str, password: str, db: Session) -> Tuple[bool, dic
     token = create_access_token({
         "sub":   user.user_id,
         "email": user.email,
-        "name":  user.name,
+        "name":  user.full_name,
     })
 
     return True, {
@@ -114,6 +114,109 @@ def authenticate_user(email: str, password: str, db: Session) -> Tuple[bool, dic
         "user": UserOut(
             user_id=user.user_id,
             email=user.email,
-            name=user.name,
+            full_name=user.full_name,
         ),
     }
+
+
+
+# ── Registration BLL function ─────────────────────────────────
+
+def register_user(email: str, password: str, full_name: str, db: Session) -> Tuple[bool, dict]:
+    """
+    Register a new user account.
+    Validates input, checks for duplicates, hashes password with PBKDF2,
+    and stores in Supabase via DAL.
+
+    Parameters
+    ----------
+    email : str
+        User's email address.
+    password : str
+        User's password (plain text).
+    full_name : str
+        User's full name.
+    db : Session
+        SQLAlchemy database session (injected via DAL).
+
+    Returns
+    -------
+    (success, payload)
+        On success: (True, {"access_token": ..., "user": UserOut(...)})
+        On failure: (False, {"errors": [str, ...], "code": int})
+    """
+    # ── Step 1: Input validation ─────────────────────────────
+    errors: list[str] = []
+
+    # Validate email
+    if not email or not email.strip():
+        errors.append("Email address is required.")
+    elif not EMAIL_REGEX.match(email.strip()):
+        errors.append("Email address is not in a valid format (e.g. user@domain.com).")
+
+    # Validate password
+    if not password:
+        errors.append("Password is required.")
+    elif len(password) < MIN_PASSWORD_LENGTH:
+        errors.append(f"Password must be at least {MIN_PASSWORD_LENGTH} characters.")
+
+    # Validate full_name
+    if not full_name or not full_name.strip():
+        errors.append("Full name is required.")
+
+    if errors:
+        return False, {"errors": errors, "code": 422}
+
+    email = email.strip().lower()
+    full_name = full_name.strip()
+
+    # ── Step 2: Check if user already exists ─────────────────
+    existing_user = get_user_by_email(db, email)
+    if existing_user:
+        return False, {
+            "errors": ["An account with this email address already exists."],
+            "code": 409,
+        }
+
+    # ── Step 3: Hash password with PBKDF2 ────────────────────
+    from utils.security import hash_password
+    hashed_password = hash_password(password)
+
+    # ── Step 4: Create user via DAL ──────────────────────────
+    from dal.repositories.user_repository import create_user
+    import uuid
+
+    try:
+        # Generate a unique user_id
+        user_id = f"user-{uuid.uuid4().hex[:12]}"
+
+        new_user = create_user(
+            db=db,
+            user_id=user_id,
+            email=email,
+            full_name=full_name,
+            hashed_password=hashed_password,
+        )
+
+        # ── Step 5: Generate JWT token ───────────────────────
+        token = create_access_token({
+            "sub":   new_user.user_id,
+            "email": new_user.email,
+            "name":  new_user.full_name,
+        })
+
+        return True, {
+            "access_token": token,
+            "user": UserOut(
+                user_id=new_user.user_id,
+                email=new_user.email,
+                full_name=new_user.full_name,
+            ),
+        }
+
+    except Exception as e:
+        # Database error (e.g., constraint violation)
+        return False, {
+            "errors": ["Failed to create user account. Please try again."],
+            "code": 500,
+        }

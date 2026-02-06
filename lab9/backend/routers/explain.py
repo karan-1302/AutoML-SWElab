@@ -13,6 +13,7 @@ from bll.explain_bll  import generate_explanation
 router = APIRouter()
 
 
+@router.get("", response_model=ExplainResponse)
 @router.get("/latest", response_model=ExplainResponse)
 def explain_latest(current_user: dict = Depends(get_current_user)):
     """

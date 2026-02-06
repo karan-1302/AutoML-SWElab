@@ -21,13 +21,20 @@
 # ─────────────────────────────────────────────────────────────
 
 from contextlib import asynccontextmanager
+import os
+
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from dal.database import init_db, SessionLocal
 from dal.seed import seed_database
-from routers import auth, ingest, train, predict, explain
+from routers import auth, ingest, train, predict, explain, user_history
 
 
 # ── Lifespan handler (startup / shutdown) ─────────────────────
@@ -35,8 +42,16 @@ from routers import auth, ingest, train, predict, explain
 async def lifespan(app: FastAPI):
     """Initialise database and seed data on startup."""
     # Startup
+    print("[startup] Running system health checks...")
+    from utils.health_check import print_health_report
+    health_report = print_health_report()
+    
     print("[startup] Initialising database...")
     init_db()
+    
+    # Print user_id column types for verification
+    from dal.database import print_user_id_type
+    print_user_id_type()
 
     db = SessionLocal()
     try:
@@ -74,11 +89,17 @@ app.add_middleware(
 )
 
 # ── Routers (Presentation Layer — thin) ──────────────────────
-app.include_router(auth.router,    prefix="/api/auth",    tags=["Authentication"])
-app.include_router(ingest.router,  prefix="/api/ingest",  tags=["Data Ingestion"])
-app.include_router(train.router,   prefix="/api/train",   tags=["AutoML Training"])
-app.include_router(predict.router, prefix="/api/predict",  tags=["Prediction"])
-app.include_router(explain.router, prefix="/api/explain",  tags=["Explainability"])
+app.include_router(auth.router,        prefix="/api/auth",        tags=["Authentication"])
+app.include_router(ingest.router,      prefix="/api/ingest",      tags=["Data Ingestion"])
+app.include_router(train.router,       prefix="/api/train",       tags=["AutoML Training"])
+app.include_router(predict.router,     prefix="/api/predict",     tags=["Prediction"])
+app.include_router(explain.router,     prefix="/api/explain",     tags=["Explainability"])
+app.include_router(user_history.router, prefix="/api/user",       tags=["User History"])
+
+# Serve the test HTML file
+@app.get("/test_frontend.html")
+async def serve_test_page():
+    return FileResponse("test_frontend.html")
 
 
 @app.get("/", tags=["Health"])

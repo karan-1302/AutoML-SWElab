@@ -10,10 +10,15 @@ class LoginRequest(BaseModel):
     email:    str
     password: str
 
+class RegisterRequest(BaseModel):
+    email:     str
+    password:  str
+    full_name: str
+
 class UserOut(BaseModel):
     user_id: str
     email:   str
-    name:    str
+    full_name:    str
 
 class LoginResponse(BaseModel):
     access_token: str
@@ -68,6 +73,53 @@ class PredictResponse(BaseModel):
     predicted_price: float
     model_used:      str
     confidence:      float   # rough confidence % based on R²
+
+
+class PredictPersistRequest(BaseModel):
+    dataset_id:    str
+    target_column: str
+    model_name:    str
+    features:      Dict[str, Any]  # Feature values for prediction
+
+
+class PredictPersistResponse(BaseModel):
+    predicted_price: float
+    model_used:      str
+    confidence:      float
+    dataset_id:      str
+    model_name:      str
+    target_column:   str
+
+
+class DatasetInfo(BaseModel):
+    dataset_id:      str
+    filename:        str
+    row_count:       int
+    column_count:    int
+    quality_score:   Optional[float] = None
+    uploaded_at:     Optional[str] = None
+    columns:         List[str] = []
+
+
+class ModelInfo(BaseModel):
+    model_name:      str
+    target_column:   str
+    scores:          Dict[str, Any]
+    trained_at:      Optional[str] = None
+    status:          str
+    feature_columns: List[str] = []
+
+
+class PredictionInfo(BaseModel):
+    prediction_id:   int
+    predicted_price: float
+    model_used:      str
+    confidence:      float
+    dataset_id:      Optional[str] = None
+    model_name:      Optional[str] = None
+    target_column:   Optional[str] = None
+    input_features:  Dict[str, Any]
+    created_at:      Optional[str] = None
 
 
 # ── Explainability ────────────────────────────────────────────

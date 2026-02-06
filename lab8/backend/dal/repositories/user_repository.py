@@ -53,7 +53,7 @@ def create_user(
     db: Session,
     user_id: str,
     email: str,
-    name: str,
+    full_name: str,
     hashed_password: str,
 ) -> User:
     """
@@ -63,7 +63,7 @@ def create_user(
     ----------
     db : Session
         Active SQLAlchemy session.
-    user_id, email, name, hashed_password : str
+    user_id, email, full_name, hashed_password : str
         User attributes.
 
     Returns
@@ -74,7 +74,7 @@ def create_user(
     user = User(
         user_id=user_id,
         email=email.lower(),
-        name=name,
+        full_name=full_name,
         hashed_password=hashed_password,
     )
     db.add(user)

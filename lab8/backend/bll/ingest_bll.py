@@ -2,8 +2,9 @@
 # ─────────────────────────────────────────────────────────────
 # Data Ingestion Business Logic Layer
 #
-# Updated for Lab 8: stores dataset metadata in the database (DAL)
-# and keeps the DataFrame in the in-memory runtime cache.
+# Updated for Lab 8: stores dataset metadata in the database (DAL),
+# saves physical CSV files to disk, and keeps the DataFrame in the
+# in-memory runtime cache.
 #
 # Business Rules Implemented:
 #   BR-ING-01  Only .csv files are accepted.
@@ -15,16 +16,18 @@
 #   BR-ING-07  Data quality report is computed.
 #   BR-ING-08  Preview is limited to first 10 rows.
 #   BR-ING-09  NaN values are replaced with None for JSON serialization.
+#   BR-ING-10  Physical CSV file is saved to disk with user_id prefix.
 # ─────────────────────────────────────────────────────────────
 
 import io
+import os
 import uuid
 from typing import Tuple
 
 import pandas as pd
 from sqlalchemy.orm import Session
 
-from dal.repositories.dataset_repository import create_dataset
+from dal.repositories.dataset_repository import create_dataset, get_dataset_by_filename_and_user
 from utils.store import cache_dataset
 
 PREVIEW_ROWS   = 10
@@ -32,6 +35,14 @@ MAX_FILE_MB    = 50
 ALLOWED_SUFFIX = ".csv"
 MIN_ROWS       = 10
 MIN_COLUMNS    = 2
+
+# ── File Storage Configuration ─────────────────────────────────
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
+
+# Ensure upload directory exists
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+print(f"[ingest] Upload directory: {UPLOAD_DIR}")
 
 
 # ── Validation ────────────────────────────────────────────────
@@ -154,6 +165,14 @@ def validate_and_ingest(
     if df_errors:
         return False, {"errors": df_errors, "code": 422}
 
+    # ── Step 3b: Check for duplicate dataset (same filename, same user) ─────────
+    existing_dataset = get_dataset_by_filename_and_user(db, user_id, filename)
+    if existing_dataset:
+        return False, {
+            "errors": [f"Dataset '{filename}' already exists for this user. Please rename the file or delete the existing dataset."],
+            "code": 409,
+        }
+
     # ── Step 4: Data quality report (BR-ING-07) ───────────────
     quality_report = _compute_quality_report(df)
 
@@ -161,14 +180,52 @@ def validate_and_ingest(
     dataset_id = str(uuid.uuid4())
     columns = list(df.columns)
 
-    create_dataset(
-        db=db,
-        dataset_id=dataset_id,
-        filename=filename,
-        user_id=user_id,
-        columns=columns,
-        row_count=len(df),
-    )
+    # ── Step 5a: Save physical file to disk (BR-ING-10) ───────
+    try:
+        # Create user-specific subdirectory
+        user_upload_dir = os.path.join(UPLOAD_DIR, user_id)
+        os.makedirs(user_upload_dir, exist_ok=True)
+        
+        # Generate safe filename with dataset_id prefix
+        safe_filename = f"{dataset_id}_{filename}"
+        file_path = os.path.join(user_upload_dir, safe_filename)
+        
+        # Write file to disk
+        with open(file_path, 'wb') as f:
+            f.write(file_bytes)
+        
+        print(f"[ingest] File saved: {file_path}")
+    except Exception as file_err:
+        return False, {
+            "errors": [f"Failed to save file to disk: {str(file_err)}"],
+            "code": 500,
+        }
+
+    # ── Step 5b: Save metadata to database ────────────────────
+    try:
+        create_dataset(
+            db=db,
+            dataset_id=dataset_id,
+            filename=filename,
+            user_id=user_id,
+            columns=columns,
+            row_count=len(df),
+            file_path=file_path,
+            quality_score=quality_report.get("quality_score"),
+        )
+        print(f"[ingest] Dataset metadata saved: {dataset_id}")
+    except Exception as db_err:
+        # If database save fails, try to clean up the file
+        try:
+            os.remove(file_path)
+            print(f"[ingest] Cleaned up file after database error: {file_path}")
+        except:
+            pass
+        
+        return False, {
+            "errors": [f"Failed to save dataset metadata: {str(db_err)}"],
+            "code": 500,
+        }
 
     # ── Step 6: Cache DataFrame in runtime store ──────────────
     cache_dataset(dataset_id, {

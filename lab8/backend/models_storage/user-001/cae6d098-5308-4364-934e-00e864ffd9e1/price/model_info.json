@@ -1,0 +1,30 @@
+{
+  "model_name": "RandomForest",
+  "scores": {
+    "rmse": 143044.8211,
+    "mae": 106004.6135,
+    "r2": 0.685097
+  },
+  "feature_columns": [
+    "bedrooms",
+    "bathrooms",
+    "sqft_living",
+    "sqft_lot",
+    "floors",
+    "waterfront",
+    "view",
+    "condition",
+    "grade",
+    "sqft_above",
+    "sqft_basement",
+    "yr_built",
+    "yr_renovated",
+    "zipcode",
+    "lat",
+    "long",
+    "sqft_living15",
+    "sqft_lot15"
+  ],
+  "target_column": "price",
+  "timestamp": "2026-04-26T21:38:27.433212+00:00"
+}

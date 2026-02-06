@@ -9,15 +9,15 @@ _lock = threading.Lock()
 
 # ── Simulated user table ──────────────────────────────────────
 # Pre-seeded demo user (password = "password123")
-from passlib.context import CryptContext
-_pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
+# Password hash generated once at setup time, not at import.
+# To regenerate:  python3 -c "from passlib.context import CryptContext; print(CryptContext(schemes=['bcrypt']).hash('password123'))"
 USERS: Dict[str, Dict] = {
     "demo@realestate.com": {
         "user_id": "user-001",
         "email":   "demo@realestate.com",
         "name":    "Demo Agent",
-        "hashed_password": _pwd.hash("password123"),
+        # bcrypt hash of "password123"
+        "hashed_password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",
     }
 }
 

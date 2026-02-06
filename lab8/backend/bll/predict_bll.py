@@ -151,3 +151,118 @@ def validate_and_predict(features: dict, user_id: str, db: Session) -> Tuple[boo
         "model_used":      model_name,
         "confidence":      confidence,
     }
+
+
+def validate_and_predict_persist(
+    dataset_id: str,
+    target_column: str,
+    model_name: str,
+    features: dict,
+    user_id: str,
+    db: Session,
+) -> Tuple[bool, dict]:
+    """
+    Load a persisted model from disk and make a prediction.
+    Saves the prediction to the database with full metadata.
+
+    Parameters
+    ----------
+    dataset_id : str
+        The dataset ID.
+    target_column : str
+        The target column name.
+    model_name : str
+        The model name (e.g., "XGBoost").
+    features : dict
+        Feature values for prediction.
+    user_id : str
+        The user ID.
+    db : Session
+        Database session.
+
+    Returns
+    -------
+    (success, payload)
+        On success: (True, {predicted_price, model_used, confidence, dataset_id, model_name, target_column})
+        On failure: (False, {errors: [...], code: int})
+    """
+    import joblib
+    from pathlib import Path
+
+    # ── Step 1: Validate input features ───────────────────────
+    validation_errors = _validate_features(features)
+    if validation_errors:
+        return False, {"errors": validation_errors, "code": 422}
+
+    # ── Step 2: Load model from disk ──────────────────────────
+    model_dir = Path("models_storage") / user_id / dataset_id / target_column
+    model_path = model_dir / f"{model_name}.pkl"
+    info_path = model_dir / "model_info.json"
+
+    if not model_path.exists():
+        return False, {
+            "errors": [f"Model not found: {model_path}"],
+            "code": 404,
+        }
+
+    try:
+        pipeline = joblib.load(str(model_path))
+        print(f"[PREDICT] Loaded model from {model_path}")
+    except Exception as exc:
+        return False, {
+            "errors": [f"Failed to load model: {str(exc)}"],
+            "code": 500,
+        }
+
+    # ── Step 3: Load model metadata ───────────────────────────
+    import json
+    try:
+        with open(info_path, "r") as f:
+            model_info = json.load(f)
+        feature_columns = model_info.get("feature_columns", [])
+        r2 = model_info.get("scores", {}).get("r2", 0.5)
+    except Exception as exc:
+        return False, {
+            "errors": [f"Failed to load model metadata: {str(exc)}"],
+            "code": 500,
+        }
+
+    # ── Step 4: Build input DataFrame ─────────────────────────
+    input_row = {col: features.get(col) for col in feature_columns}
+    input_df = pd.DataFrame([input_row])
+
+    # ── Step 5: Run prediction ────────────────────────────────
+    try:
+        prediction = float(pipeline.predict(input_df)[0])
+    except Exception as exc:
+        return False, {
+            "errors": [f"Prediction failed: {str(exc)}"],
+            "code": 500,
+        }
+
+    # ── Step 6: Compute confidence ────────────────────────────
+    confidence = _compute_confidence(r2)
+
+    # ── Step 7: Save to database with metadata ────────────────
+    from dal.repositories.prediction_repository import save_prediction_with_metadata
+    save_prediction_with_metadata(
+        db=db,
+        user_id=user_id,
+        predicted_price=round(prediction, 2),
+        model_used=model_name,
+        confidence=confidence,
+        input_features=features,
+        dataset_id=dataset_id,
+        model_name=model_name,
+        target_column=target_column,
+    )
+
+    # ── Step 8: Return response ───────────────────────────────
+    return True, {
+        "predicted_price": round(prediction, 2),
+        "model_used": model_name,
+        "confidence": confidence,
+        "dataset_id": dataset_id,
+        "model_name": model_name,
+        "target_column": target_column,
+    }

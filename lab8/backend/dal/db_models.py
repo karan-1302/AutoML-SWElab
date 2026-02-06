@@ -25,7 +25,7 @@ class User(Base):
     id              = Column(Integer, primary_key=True, autoincrement=True)
     user_id         = Column(String(50), unique=True, nullable=False, index=True)
     email           = Column(String(255), unique=True, nullable=False, index=True)
-    name            = Column(String(255), nullable=False)
+    full_name       = Column(String(255), nullable=False)  # Matches Supabase schema
     hashed_password = Column(String(255), nullable=False)
     created_at      = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
@@ -42,13 +42,15 @@ class Dataset(Base):
     """Metadata for an uploaded CSV dataset."""
     __tablename__ = "datasets"
 
-    id           = Column(Integer, primary_key=True, autoincrement=True)
-    dataset_id   = Column(String(50), unique=True, nullable=False, index=True)
-    filename     = Column(String(255), nullable=False)
-    user_id      = Column(String(50), ForeignKey("users.user_id"), nullable=False)
-    columns_json = Column(Text, nullable=False)       # JSON-serialized list of column names
-    row_count    = Column(Integer, nullable=False)
-    created_at   = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    id              = Column(Integer, primary_key=True, autoincrement=True)
+    dataset_id      = Column(String(50), unique=True, nullable=False, index=True)
+    filename        = Column(String(255), nullable=False)
+    user_id         = Column(String(50), ForeignKey("users.user_id"), nullable=False)
+    row_count       = Column(Integer, nullable=False)
+    column_count    = Column(Integer, nullable=True)        # Number of columns
+    quality_score   = Column(Float, nullable=True)          # Data quality score (0-100)
+    file_path       = Column(Text, nullable=True)           # Absolute path to saved CSV
+    uploaded_at     = Column(DateTime, nullable=True)       # Upload timestamp
 
     # Relationships
     owner = relationship("User", back_populates="datasets")
@@ -70,6 +72,7 @@ class TrainingJob(Base):
     target_column        = Column(String(255), nullable=True)
     feature_columns_json = Column(Text, default="[]")          # JSON list
     error_message        = Column(Text, nullable=True)
+    mlflow_run_id        = Column(String(100), nullable=True)   # MLflow experiment run ID
     created_at           = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at           = Column(DateTime, default=lambda: datetime.now(timezone.utc),
                                   onupdate=lambda: datetime.now(timezone.utc))
@@ -78,7 +81,7 @@ class TrainingJob(Base):
     owner = relationship("User", back_populates="training_jobs")
 
     def __repr__(self):
-        return f"<TrainingJob(user_id='{self.user_id}', status='{self.status}')>"
+        return f"<TrainingJob(user_id='{self.user_id}', status='{self.status}', mlflow_run_id='{self.mlflow_run_id}')>"
 
 
 class Prediction(Base):
@@ -91,6 +94,9 @@ class Prediction(Base):
     model_used          = Column(String(100), nullable=False)
     confidence          = Column(Float, nullable=False)
     input_features_json = Column(Text, nullable=False)  # JSON dict of input features
+    dataset_id          = Column(String(50), nullable=True)  # FK to dataset (optional)
+    model_name          = Column(String(100), nullable=True)  # Name of persisted model
+    target_column       = Column(String(255), nullable=True)  # Target column used in model
     created_at          = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relationships

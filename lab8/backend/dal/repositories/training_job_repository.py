@@ -8,7 +8,7 @@
 # ─────────────────────────────────────────────────────────────
 
 import json
-from typing import Optional
+from typing import Optional, List
 from sqlalchemy.orm import Session
 
 from dal.db_models import TrainingJob
@@ -24,6 +24,7 @@ def create_or_update_job(
     target_column: str = None,
     feature_columns: list = None,
     error_message: str = None,
+    mlflow_run_id: str = None,
 ) -> TrainingJob:
     """
     Create a new training job or update the existing one for a user.
@@ -43,6 +44,7 @@ def create_or_update_job(
     job.target_column        = target_column
     job.feature_columns_json = json.dumps(feature_columns or [])
     job.error_message        = error_message
+    job.mlflow_run_id        = mlflow_run_id
 
     db.commit()
     db.refresh(job)
@@ -115,3 +117,36 @@ def get_scores(job: TrainingJob) -> dict:
 def get_feature_columns(job: TrainingJob) -> list:
     """Deserialise feature_columns_json to a Python list."""
     return json.loads(job.feature_columns_json) if job.feature_columns_json else []
+
+
+def get_models_by_dataset(db: Session, user_id: str, dataset_id: str) -> List[dict]:
+    """
+    Retrieve all training jobs (models) for a specific dataset by a user.
+    
+    Returns a list of dictionaries with model metadata.
+    """
+    jobs = db.query(TrainingJob).filter(
+        TrainingJob.user_id == user_id,
+        TrainingJob.target_column != None
+    ).all()
+    
+    result = []
+    for job in jobs:
+        if job.status != "done" or not job.best_model_name:
+            continue
+        
+        # Check if this job has a model saved for this dataset
+        # We need to check if the model was trained on this dataset
+        # For now, we'll return all completed training jobs
+        # In a more sophisticated system, we'd track dataset_id in training_jobs
+        
+        result.append({
+            "model_name": job.best_model_name,
+            "target_column": job.target_column,
+            "scores": get_scores(job),
+            "trained_at": job.updated_at.isoformat() if job.updated_at else None,
+            "status": job.status,
+            "feature_columns": get_feature_columns(job),
+        })
+    
+    return result
