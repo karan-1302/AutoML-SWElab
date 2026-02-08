@@ -3,7 +3,7 @@ import numpy as np
 import sys
 import os
 
-# Ensure src is in python path
+# Ensures src is in python path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
 from src.data_preprocessor import DataPreprocessor
