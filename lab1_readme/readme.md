@@ -55,7 +55,6 @@ Real estate professionals often rely on manual analysis and intuition despite ha
 - **Rental Value** (Regression)  
 - **Property Category** (Classification)  
 - **Investment Risk Level** (Classification)  
-- **Market Demand Level** (Regression / Classification)  
 
 ---
 

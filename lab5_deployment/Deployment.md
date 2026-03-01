@@ -4,7 +4,7 @@
 
 ## I. Hosting Application Components
 
-### 1. Host Sites (Target Server/Cloud)
+### 1. Host Sites 
 To optimize compute resources and ensure a responsive user experience, the system utilizes a **Hybrid Compute and Composable Cloud Architecture**. The application components are distributed across specialized managed platforms:
 
 * **Local Compute Node (Training Environment):** The heavy, resource-intensive tasks—such as bulk data ingestion, data cleaning, and executing the `AutoMLTrainer` algorithms—are executed locally. 
@@ -21,7 +21,7 @@ To optimize compute resources and ensure a responsive user experience, the syste
 ### 2. Deployment Strategy
 The deployment follows a Continuous Integration / Continuous Deployment (CI/CD) pipeline coupled with a decoupled ML artifact lifecycle:
 
-* **Step 1: Source Control & Versioning:** All frontend and backend codebase is pushed to separate repositories on GitHub.
+* **Step 1: Source Control & Versioning:** All frontend and backend codebase is pushed on GitHub.
 * **Step 2: Model Artifact Deployment (The ML Pipeline):** The local training script generates a Scikit-Learn Pipeline (bundling both the data preprocessor and the predictive model). This artifact is pushed directly via API to the **DagsHub** MLflow registry.
 * **Step 3: Web Infrastructure Configuration:** We link our GitHub repositories directly to Vercel and Render. We extract the connection URLs for our Database (Supabase) and our Model Registry (DagsHub) and inject them into Render and Vercel as highly secure **Environment Variables**.
 * **Step 4: Automated CI/CD:** Vercel and Render are configured to automatically trigger a build and deployment whenever new code is pushed to the `main` branch. 
