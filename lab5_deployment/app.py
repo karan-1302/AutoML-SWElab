@@ -41,7 +41,7 @@ app_mode = st.sidebar.radio("Go to:", ["1. Train & Load Model", "2. Prediction E
 # PAGE 1: TRAIN & LOAD MODEL
 # ==========================================
 if app_mode == "1. Train & Load Model":
-    st.title("🏡 Real Estate AutoML - Training")
+    st.title("Real Estate AutoML - Training")
     
     st.header("1. Data Upload")
     uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
@@ -166,7 +166,7 @@ if app_mode == "1. Train & Load Model":
 # PAGE 2: PREDICTION ENGINE
 # ==========================================
 elif app_mode == "2. Prediction Engine":
-    st.title("🔮 AI Prediction Engine")
+    st.title("AI Prediction Engine")
     
     # Check if model is loaded from session state
     if st.session_state['loaded_model'] is None or st.session_state['df_schema'] is None:

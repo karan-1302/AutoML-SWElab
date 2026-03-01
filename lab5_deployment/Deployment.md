@@ -11,7 +11,7 @@ To optimize compute resources and ensure a responsive user experience, the syste
   * *Rationale:* Model training is CPU/RAM intensive. Executing this locally prevents cloud compute bottlenecks, isolates long-running tasks from the live web server, and allows us to bundle the preprocessing rules and the model into a single unified pipeline artifact.
 * **DagsHub (Model Registry):** Hosts our managed MLflow server.
   * *Rationale:* Acts as the central bridge between our local training environment and our cloud serving environment. It provides strict version control for our serialized machine learning models (e.g., `.pkl` files) and tracks performance metrics.
-* **Vercel (Frontend Web Dashboard):** Hosts the React/Vue user interface.
+* **Vercel (Frontend Web Dashboard):** Hosts the React user interface.
   * *Rationale:* Vercel provides an advanced Edge Network (CDN) highly optimized for serving static web applications. It ensures fast, global load times for the dashboard.
 * **Render (Backend API Gateway & Prediction Service):** Hosts our always-on Python microservices.
   * *Rationale:* Render provides native support for containerized Python web services. It allows the Prediction Service to remain continuously active, holding the machine learning model in memory to serve real-time predictions with sub-second latency.
