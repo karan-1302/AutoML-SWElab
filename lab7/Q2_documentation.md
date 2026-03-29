@@ -1,6 +1,6 @@
 # CS 331 — Software Engineering Lab
 # Assignment 7: Business Logic Layer (BLL)
-# Q2 Documentation :
+# Q2 Documentation
 
 ---
 
