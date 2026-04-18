@@ -1,0 +1,65 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.13.12, pytest-9.0.2, pluggy-1.6.0
+rootdir: AutoML-SWElab/lab9/backend
+plugins: anyio-4.13.0
+collecting ... collected 27 items
+
+tests/test_assignment9.py::TestTC_AUTH_01::test_login_success_status_code PASSED [  3%]
+tests/test_assignment9.py::TestTC_AUTH_01::test_login_success_token_present PASSED [  7%]
+tests/test_assignment9.py::TestTC_AUTH_01::test_login_success_user_email PASSED [ 11%]
+tests/test_assignment9.py::TestTC_AUTH_02::test_wrong_password_status_code PASSED [ 14%]
+tests/test_assignment9.py::TestTC_AUTH_02::test_wrong_password_error_message PASSED [ 18%]
+tests/test_assignment9.py::TestTC_AUTH_03::test_nonexistent_email_status_code PASSED [ 22%]
+tests/test_assignment9.py::TestTC_AUTH_03::test_nonexistent_email_generic_message PASSED [ 25%]
+tests/test_assignment9.py::TestTC_AUTH_04::test_empty_email_status_code PASSED [ 29%]
+tests/test_assignment9.py::TestTC_AUTH_04::test_empty_email_error_message PASSED [ 33%]
+tests/test_assignment9.py::TestTC_AUTH_04::test_empty_email_bll_direct PASSED [ 37%]
+tests/test_assignment9.py::TestTC_AUTH_05::test_malformed_email_status_code PASSED [ 40%]
+tests/test_assignment9.py::TestTC_AUTH_05::test_malformed_email_error_message PASSED [ 44%]
+tests/test_assignment9.py::TestTC_AUTH_05::test_malformed_email_bll_direct PASSED [ 48%]
+tests/test_assignment9.py::TestTC_AUTH_05::test_various_malformed_emails[missing_at_sign] PASSED [ 51%]
+tests/test_assignment9.py::TestTC_AUTH_05::test_various_malformed_emails[missing@] PASSED [ 55%]
+tests/test_assignment9.py::TestTC_AUTH_05::test_various_malformed_emails[@nodomain.com] PASSED [ 59%]
+tests/test_assignment9.py::TestTC_AUTH_05::test_various_malformed_emails[spaces in@email.com] PASSED [ 62%]
+tests/test_assignment9.py::TestTC_AUTH_06::test_short_password_status_code PASSED [ 66%]
+tests/test_assignment9.py::TestTC_AUTH_06::test_short_password_error_message PASSED [ 70%]
+tests/test_assignment9.py::TestTC_AUTH_06::test_boundary_password_length PASSED [ 74%]
+tests/test_assignment9.py::TestTC_AUTH_07::test_jwt_claims_present PASSED [ 77%]
+tests/test_assignment9.py::TestTC_AUTH_07::test_jwt_expiry_is_future PASSED [ 81%]
+tests/test_assignment9.py::TestTC_AUTH_08::test_upload_without_auth_returns_401 PASSED [ 85%]
+tests/test_assignment9.py::TestTC_AUTH_08::test_predict_without_auth_returns_401 PASSED [ 88%]
+tests/test_assignment9.py::TestTC_AUTH_08::test_explain_without_auth_returns_401 PASSED [ 92%]
+tests/test_assignment9.py::TestTC_AUTH_08::test_train_without_auth_returns_401 PASSED [ 96%]
+tests/test_assignment9.py::TestTC_AUTH_08::test_invalid_token_returns_401 PASSED [100%]
+
+============================== 27 passed in 6.67s ==============================
+
+---
+Test Execution Summary
+Date       : April 20, 2026
+Environment: macOS, Python 3.13.12, pytest 9.0.2
+Backend    : FastAPI + SQLAlchemy (SQLite in-memory for tests)
+Test File  : tests/test_assignment9.py
+
+Total Tests : 27
+Passed      : 27
+Failed      : 0
+Errors      : 0
+Pass Rate   : 100%
+
+Test Cases Covered:
+  TC-AUTH-01  Successful login with valid credentials          PASS (3 sub-tests)
+  TC-AUTH-02  Login fails with wrong password                  PASS (2 sub-tests)
+  TC-AUTH-03  Login fails with non-existent email              PASS (2 sub-tests)
+  TC-AUTH-04  Login fails with empty email field               PASS (3 sub-tests)
+  TC-AUTH-05  Login fails with malformed email format          PASS (7 sub-tests)
+  TC-AUTH-06  Login fails with password too short              PASS (3 sub-tests)
+  TC-AUTH-07  JWT token contains correct claims                PASS (2 sub-tests)
+  TC-AUTH-08  Protected endpoint rejects request without token PASS (5 sub-tests)
+
+Notes:
+  - A passlib/bcrypt incompatibility was discovered during testing on Python 3.13
+    (see BUG-003 in defect_report.md). The lab9 backend/utils/security.py was
+    patched to call bcrypt directly, bypassing passlib.
+  - The explain endpoint path is /api/explain/latest (not /api/explain).
+    This was identified as BUG-002 in defect_report.md.
